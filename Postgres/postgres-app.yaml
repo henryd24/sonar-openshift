@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+data:
+  POSTGRESQL_USER: "<USERNAME>"
+  POSTGRESQL_DATABASE: sonar_db
+  POSTGRESQL_PASSWORD: "<PASSWORD>"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgress
+        image: bitnami/postgresql:11.16.0-debian-11-r4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        env:
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        envFrom:
+        - configMapRef:
+            name: postgres
+        volumeMounts:
+        - name: postgres
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+---
